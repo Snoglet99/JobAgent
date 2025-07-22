@@ -6,7 +6,8 @@ from modules.profile_utils import (
     save_application_to_history,
     can_generate_application
 )
-from openai import OpenAI
+import openai
+openai.api_key = os.getenv("OPENAI_API_KEY")
 from dotenv import load_dotenv
 import streamlit as st
 import os
@@ -164,7 +165,7 @@ Format:
 <cover letter>
 """.strip()
 
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You write elite-level applications for hard-charging professionals. Your voice is sharp, concise, and persuasive. Assume the reader is busy and skeptical — win them over fast."},

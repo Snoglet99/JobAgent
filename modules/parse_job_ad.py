@@ -1,9 +1,9 @@
-from openai import OpenAI
 import os
+import openai
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def extract_job_objectives(job_title: str, job_ad_text: str) -> dict:
     prompt = f"""
@@ -23,7 +23,7 @@ JOB AD TEXT:
 Return only the JSON.
 """
 
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a structured information extractor for job postings."},
@@ -32,4 +32,4 @@ Return only the JSON.
         temperature=0.3,
     )
 
-    return response.choices[0].message.content.strip()
+    return response.choices[0].message["content"].strip()
