@@ -7,16 +7,11 @@ from modules.profile_utils import (
     can_generate_application
 )
 import openai
-openai.api_key = os.getenv("OPENAI_API_KEY")
-from dotenv import load_dotenv
 import streamlit as st
-import os
-import urllib.parse
+from openai import OpenAI
 
-# Load environment and init OpenAI client
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 st.set_page_config(page_title="Application Generator", page_icon="📄")
 st.title("📄 Job Application Generator")
 
