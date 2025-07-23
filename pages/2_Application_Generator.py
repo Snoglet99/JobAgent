@@ -7,9 +7,8 @@ from modules.fetch_news import fetch_company_news
 from modules.parse_job_ad import extract_job_objectives
 from modules.profile_utils import (
     load_user_profile,
-    increment_usage,
+    save_user_profile,
     save_application_to_history,
-    can_generate_application
 )
 from modules.payment import create_checkout_session
 from modules.ui_sections import render_job_inputs, render_news_section, render_optional_inputs, render_profile_view
@@ -38,33 +37,51 @@ def fetch_company_news_cached(company_name):
     return fetch_company_news(company_name)
 
 
+# --- Access Logic ---
+def has_application_access(profile):
+    return profile.get("usage_count", 0) < 3 or profile.get("paid_access", False)
+
+
+def increment_usage_or_block(profile, email):
+    if profile.get("usage_count", 0) < 3:
+        profile["usage_count"] = profile.get("usage_count", 0) + 1
+        profile["edit_rounds"] = 0
+        save_user_profile(email, profile)
+        return True
+    return False
+
+
 # --- Email + usage logic ---
 email = st.text_input("Enter your email to load config", key="email_jobgen")
 query_params = st.query_params
-payment_complete = query_params.get("paid", ["0"])[0] == "1"
 
 if email:
     profile = load_user_profile(email)
 
-    st.markdown("### 💰 Usage & Upgrade Options")
-    st.markdown("""
-    - ✅ **Free Tier** — 2 job applications/week  
-    - 🪙 **Pay-per-use** — [$3 AUD per app](https://buy.stripe.com/test_cNi8wP3CN7ni6pMczkjd00)  
-    - 🏆 **Pro Subscription** — *$10/month — coming soon*
+    # Handle Stripe redirect
+    if query_params.get("paid") and query_params.get("paid")[0] == "1":
+        profile["paid_access"] = True
+        profile["edit_rounds"] = 0
+        save_user_profile(email, profile)
+        st.experimental_set_query_params(email=email)
+        st.success("✅ Payment successful. You can now generate and edit your next application.")
 
-    After payment, refresh the page or re-enter your email to continue.
-    """)
-
-    if not can_generate_application(profile):
-        st.error("❌ You've reached your weekly limit.")
-        if st.button("🔓 Unlock 1 more application ($3 AUD)"):
-            url = create_checkout_session(email)
-            st.markdown(f"[Click here to pay →]({url})")
-            st.stop()
-        st.info("After payment, this page will reload automatically. If not, refresh or re-enter your email.")
+    # Lock if user has no access
+    if not has_application_access(profile):
+        st.error("❌ You've used all 3 free applications.")
+        st.markdown("### 💰 Usage & Upgrade Options")
+        st.markdown("""
+        ✅ **Free Tier** — 3 total applications per email  
+        🔁 **Each includes 3 cover letter refinements**  
+        🪙 **Pay-per-use** — $3 AUD per application  
+        🏆 **Pro Subscription** — $10/month *(coming soon)*  
+        """)
+        url = create_checkout_session(email)
+        st.markdown("After payment, this page will reload automatically.")
+        st.markdown(f"[🔓 Unlock 1 more application for $3 AUD →]({url})", unsafe_allow_html=True)
         st.stop()
 
-    # ✅ Apply session defaults via dictionary
+    # --- UI session defaults ---
     defaults = {
         "job_title": "",
         "company": "",
@@ -81,3 +98,30 @@ if email:
     render_news_section(normalize_company_name, fetch_company_news_cached)
     render_optional_inputs()
     render_profile_view(profile)
+
+    # --- Generate ---
+    if st.button("📝 Generate Cover Letter"):
+        if profile.get("edit_rounds", 0) == 0:
+            if not increment_usage_or_block(profile, email):
+                st.warning("No more free applications. Please purchase another.")
+                st.stop()
+        st.session_state["generated_text"] = "Generated cover letter content here."  # Replace with actual generation logic
+        st.success("✅ Cover letter generated!")
+
+    # --- Show Output + Improve ---
+    if "generated_text" in st.session_state:
+        st.markdown("### ✉️ Your Cover Letter")
+        st.text_area("Output", value=st.session_state["generated_text"], height=300, key="output", disabled=False)
+
+        if "edit_rounds" not in profile:
+            profile["edit_rounds"] = 0
+
+        if st.button("🔁 Improve Cover Letter"):
+            if profile["edit_rounds"] < 3:
+                profile["edit_rounds"] += 1
+                save_user_profile(email, profile)
+                st.experimental_rerun()
+            else:
+                profile["paid_access"] = False
+                save_user_profile(email, profile)
+                st.warning("⚠️ You've reached your 3 refinements. Please purchase another application to continue.")
