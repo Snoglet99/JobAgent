@@ -40,7 +40,7 @@ def fetch_company_news_cached(company_name):
 
 # --- Email + usage logic ---
 email = st.text_input("Enter your email to load config", key="email_jobgen")
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 payment_complete = query_params.get("paid", ["0"])[0] == "1"
 
 if email:
