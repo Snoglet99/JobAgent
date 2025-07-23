@@ -136,7 +136,7 @@ if email:
             if profile["edit_rounds"] < 3:
                 profile["edit_rounds"] += 1
                 save_user_profile(email, profile)
-                st.experimental_rerun()
+                st.rerun()
             else:
                 profile["paid_access"] = False
                 save_user_profile(email, profile)
