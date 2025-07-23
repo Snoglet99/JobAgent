@@ -4,9 +4,11 @@ import os
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 PROFILE_DIR = os.path.join(BASE_PATH, "user_configs")
 
+FREE_USES = 3  # You can tweak this if needed
+
 def get_user_config_path(email):
     safe_email = email.replace("@", "_at_").replace(".", "_dot_")
-    os.makedirs(PROFILE_DIR, exist_ok=True)  # Ensure directory exists
+    os.makedirs(PROFILE_DIR, exist_ok=True)
     return os.path.join(PROFILE_DIR, f"{safe_email}.json")
 
 def get_history_path(email):
@@ -28,7 +30,15 @@ def save_user_profile(email, profile):
 
 def increment_usage(email):
     profile = load_user_profile(email)
-    profile["usage_count"] = profile.get("usage_count", 0) + 1
+    
+    # Track usage
+    usage = profile.get("usage_count", 0)
+    profile["usage_count"] = usage + 1
+
+    # Deduct credit if applicable
+    if profile.get("credit_balance", 0) > 0:
+        profile["credit_balance"] -= 1
+
     save_user_profile(email, profile)
 
 def save_application_to_history(email, job_title, company, content):
@@ -51,7 +61,7 @@ def save_application_to_history(email, job_title, company, content):
 def can_generate_application(profile):
     if profile.get("subscription_status") == "pro":
         return True
-    if profile.get("usage_count", 0) < 1:
+    if profile.get("usage_count", 0) < FREE_USES:
         return True
     if profile.get("credit_balance", 0) > 0:
         return True
