@@ -12,6 +12,7 @@ from modules.profile_utils import (
 )
 from modules.payment import create_checkout_session
 from modules.ui_sections import render_job_inputs, render_news_section, render_optional_inputs, render_profile_view
+from modules.generate_cover_letter import generate_cover_letter  # ✅ Added
 
 # Set up OpenAI
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -105,7 +106,22 @@ if email:
             if not increment_usage_or_block(profile, email):
                 st.warning("No more free applications. Please purchase another.")
                 st.stop()
-        st.session_state["generated_text"] = "Generated cover letter content here."  # Replace with actual generation logic
+
+        # ✅ Extract job objectives if not already
+        if not st.session_state["job_objectives"]:
+            st.session_state["job_objectives"] = extract_job_objectives(st.session_state["job_ad_text"])
+
+        # ✅ Generate cover letter
+        st.session_state["generated_text"] = generate_cover_letter(
+            job_title=st.session_state["job_title"],
+            company=st.session_state["company"],
+            job_ad_text=st.session_state["job_ad_text"],
+            job_objectives=st.session_state["job_objectives"],
+            profile=profile,
+            news=st.session_state["recent_news"],
+            strategy=st.session_state["strategy_docs"],
+            tone=profile.get("tone", "Default")
+        )
         st.success("✅ Cover letter generated!")
 
     # --- Show Output + Improve ---
