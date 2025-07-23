@@ -15,6 +15,10 @@ email = st.text_input("Email (used to load/save profile)")
 if email:
     profile = load_user_profile(email)
 
+    # Resume input
+    st.markdown("**Paste Your Resume**")
+    profile["resume"] = st.text_area("Resume Text", value=profile.get("resume", ""), height=300)
+
     profile["goal"] = st.text_input("Career Goal", value=profile.get("goal", ""))
     profile["industries"] = st.text_input("Target Industries (comma-separated)", value=profile.get("industries", ""))
     profile["roles"] = st.text_input("Target Roles (comma-separated)", value=profile.get("roles", ""))
