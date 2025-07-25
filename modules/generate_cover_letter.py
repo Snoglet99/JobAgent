@@ -15,7 +15,17 @@ tone_instruction = {
 }
 
 
-def generate_cover_letter(job_title, company, job_ad_text, job_objectives, profile, news="", strategy="", tone="Default"):
+def generate_cover_letter(
+    job_title,
+    company,
+    job_ad_text,
+    job_objectives,
+    profile,
+    news="",
+    strategy="",
+    tone="Default",
+    feedback=None  # ✅ NEW: optional feedback input
+):
     prompt = f"""
 You are a world-class cover letter writer. Your task is to write a concise, high-impact cover letter that:
 
@@ -44,7 +54,20 @@ RECENT COMPANY NEWS / STRATEGY:
 {strategy}
 
 TONE GUIDE: {tone_instruction.get(tone, tone_instruction['Default'])}
+"""
 
+    # ✅ Append refinement instructions if feedback is provided
+    if feedback:
+        prompt += f"""
+
+--- USER FEEDBACK ---
+The user has requested that the letter be improved in the following way(s):
+{feedback}
+
+Please take this into account when drafting the letter.
+"""
+
+    prompt += """
 --- INSTRUCTIONS ---
 Write the body of the cover letter (no greeting or sign-off). The letter must:
 
