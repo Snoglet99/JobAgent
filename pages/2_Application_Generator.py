@@ -4,7 +4,7 @@ from openai import OpenAI
 import urllib.parse
 
 from modules.fetch_news import fetch_company_news
-from modules.parse_job_ad import extract_job_objectives
+from modules.parse_job_ad import extract_job_objectives  # ✅ Ensure this is present
 from modules.profile_utils import (
     load_user_profile,
     save_user_profile,
@@ -12,7 +12,7 @@ from modules.profile_utils import (
 )
 from modules.payment import create_checkout_session
 from modules.ui_sections import render_job_inputs, render_news_section, render_optional_inputs, render_profile_view
-from modules.generate_cover_letter import generate_cover_letter  # ✅ Added
+from modules.generate_cover_letter import generate_cover_letter  # ✅ Ensure this is present
 
 # Set up OpenAI
 openai.api_key = st.secrets["OPENAI_API_KEY"]
