@@ -62,7 +62,7 @@ if email:
         profile["usage_count"] = 0
         profile["edit_rounds"] = 0
         save_user_profile(email, profile)
-        st.experimental_set_query_params(email=email)
+        
         st.success("✅ Payment successful. You can now generate or edit your next application.")
 
     if not has_application_access(profile):
