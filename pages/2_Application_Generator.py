@@ -44,26 +44,30 @@ def has_application_access(profile):
 
 def increment_usage_or_block(profile, email):
     if profile.get("usage_count", 0) < 3:
-        profile["usage_count"] = profile.get("usage_count", 0) + 1
+        profile["usage_count"] += 1
+        profile["edit_rounds"] = 0
+        save_user_profile(email, profile)
+        return True
+    elif profile.get("paid_access", False):
+        profile["paid_access"] = False  # Paid use consumed
         profile["edit_rounds"] = 0
         save_user_profile(email, profile)
         return True
     return False
 
 # --- Load User Profile ---
-email = st.text_input("Enter your email to load config", key="email_jobgen")
 query_params = st.query_params
+email = st.text_input("Enter your email to load config", key="email_jobgen")
 
 if email:
     profile = load_user_profile(email)
 
+    # Handle Stripe redirect after successful payment
     if query_params.get("paid") and query_params.get("paid")[0] == "1":
         profile["paid_access"] = True
-        profile["usage_count"] = 0
-        profile["edit_rounds"] = 0
         save_user_profile(email, profile)
-        
         st.success("✅ Payment successful. You can now generate or edit your next application.")
+        st.experimental_set_query_params(email=email)  # Clean the URL
 
     if not has_application_access(profile):
         st.error("❌ You've used all 3 applications.")
@@ -73,9 +77,13 @@ if email:
         🔁 **Each includes 3 refinements**  
         🪙 **Pay-per-use** — $3 AUD per app  
         """)
-        url = create_checkout_session(email)
-        st.markdown("After payment, this page will reload automatically.")
-        st.markdown(f"[🔓 Unlock 1 more application for $3 AUD →]({url})", unsafe_allow_html=True)
+        if st.button("🔓 Purchase One More Application ($3 AUD)"):
+            url = create_checkout_session(email)
+            st.markdown(f"[Click here if not redirected]({url})")
+            st.markdown(
+                f"""<meta http-equiv="refresh" content="0; URL='{url}'" />""",
+                unsafe_allow_html=True
+            )
         st.stop()
 
     # --- Session Defaults ---
@@ -99,7 +107,7 @@ if email:
     # --- Generate Cover Letter ---
     if st.button("📝 Generate Cover Letter"):
         if not increment_usage_or_block(profile, email):
-            st.warning("⚠️ No more free applications. Please purchase another.")
+            st.warning("⚠️ No more applications. Please purchase another.")
             st.stop()
 
         if not st.session_state["job_objectives"]:

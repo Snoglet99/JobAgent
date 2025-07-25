@@ -66,3 +66,8 @@ def can_generate_application(profile):
     if profile.get("credit_balance", 0) > 0:
         return True
     return False
+
+def increment_paid_applications(email, credits=1):
+    profile = load_user_profile(email)
+    profile["credit_balance"] = profile.get("credit_balance", 0) + credits
+    save_user_profile(email, profile)
