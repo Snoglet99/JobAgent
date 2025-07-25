@@ -11,11 +11,7 @@ def create_checkout_session(email):
         mode="payment",
         customer_email=email,
         line_items=[{
-            "price_data": {
-                "currency": "aud",
-                "product_data": {"name": "Job Application Credit"},
-                "unit_amount": 300,  # $3 AUD
-            },
+            "price": "price_1RoenMFydB3OobQ8lLONS3pa",  # ✅ CORRECT ID from Stripe dashboard
             "quantity": 1,
         }],
         success_url=f"https://jobagent.streamlit.app/Application_Generator?email={email}&paid=1",
