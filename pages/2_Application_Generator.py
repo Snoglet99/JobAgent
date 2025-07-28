@@ -81,7 +81,7 @@ email = st.text_input("Enter your email to load config", key="email_jobgen")
 profile = None
 
 if email:
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params
     profile = load_user_profile(email)
 
     if not profile:
@@ -129,37 +129,42 @@ if email:
     render_optional_inputs()
     render_profile_view(profile)
 
-    # --- Generate Cover Letter ---
-    if st.button("📝 Generate Cover Letter"):
-        if not can_generate_application(profile):
-            st.warning("⚠️ No more credits. Please purchase more.")
+# --- Generate Cover Letter ---
+if st.button("📝 Generate Cover Letter"):
+    if not can_generate_application(profile):
+        st.warning("⚠️ No more credits. Please purchase more.")
+        st.stop()
+
+    job_text = st.session_state.get("job_ad_text", "").strip()
+    if not job_text:
+        st.warning("⚠️ Please paste a job ad before generating a cover letter.")
+        st.stop()
+
+    # Extract job objectives only if needed and valid
+    if not st.session_state.get("job_objectives") and len(job_text) > 0:
+        try:
+            st.session_state["job_objectives"] = extract_job_objectives(job_text)
+        except Exception as e:
+            st.error(f"❌ Failed to extract job objectives: {e}")
             st.stop()
 
-        job_text = st.session_state.get("job_ad_text", "")
-        if job_text.strip():
-            if not st.session_state["job_objectives"]:
-                st.session_state["job_objectives"] = extract_job_objectives(job_text)
-        else:
-            st.warning("⚠️ Please paste a job ad before generating a cover letter.")
-            st.stop()
+    st.session_state["generated_text"] = generate_cover_letter(
+        job_title=st.session_state.get("job_title", ""),
+        company=st.session_state.get("company", ""),
+        job_ad_text=job_text,
+        job_objectives=st.session_state.get("job_objectives", []),
+        cv_summary=profile.get("cv_summary", ""),
+        resume_bullets=profile.get("resume_bullets", ""),
+        tone=profile.get("tone", "Default"),
+        news=st.session_state.get("recent_news", ""),
+        strategy=st.session_state.get("strategy_docs", ""),
+    )
 
-        st.session_state["generated_text"] = generate_cover_letter(
-            job_title=st.session_state["job_title"],
-            company=st.session_state["company"],
-            job_ad_text=st.session_state["job_ad_text"],
-            job_objectives=st.session_state["job_objectives"],
-            cv_summary=profile.get("cv_summary", ""),
-            resume_bullets=profile.get("resume_bullets", ""),
-            tone=profile.get("tone", "Default"),
-            news=st.session_state["recent_news"],
-            strategy=st.session_state["strategy_docs"],
-        )
+    profile = increment_usage(profile)
+    save_user_profile(email, profile)
+    st.success("✅ Cover letter generated!")
 
-        profile = increment_usage(profile)
-        save_user_profile(email, profile)
-        st.success("✅ Cover letter generated!")
-
-    # --- Show Output ---
-    if "generated_text" in st.session_state:
-        st.markdown("### ✉️ Your Cover Letter")
-        st.text_area("Output", value=st.session_state["generated_text"], height=300, key="output", disabled=False)
+# --- Show Output ---
+if "generated_text" in st.session_state:
+    st.markdown("### ✉️ Your Cover Letter")
+    st.text_area("Output", value=st.session_state["generated_text"], height=300, key="output", disabled=False)
