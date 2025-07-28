@@ -25,6 +25,7 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 st.set_page_config(page_title="Application Generator", page_icon="📄")
 st.title("📄 Job Application Generator")
 
+
 def normalize_company_name(name):
     aliases = {
         "JP Morgan": "JPMorgan Chase",
@@ -35,12 +36,15 @@ def normalize_company_name(name):
     }
     return aliases.get(name.strip(), name.strip())
 
+
 @st.cache_data(ttl=3600)
 def fetch_company_news_cached(company_name):
     return fetch_company_news(company_name)
 
+
 def has_application_access(profile):
     return profile.get("usage_count", 0) < 3 or profile.get("paid_access", False)
+
 
 def increment_usage_or_block(profile, email):
     if profile.get("usage_count", 0) < 3:
@@ -55,8 +59,9 @@ def increment_usage_or_block(profile, email):
         return True
     return False
 
+
 # --- Load User Profile ---
-query_params = st.query_params
+query_params = st.experimental_get_query_params()
 email = st.text_input("Enter your email to load config", key="email_jobgen")
 
 if email:
@@ -118,8 +123,13 @@ if email:
             st.warning("⚠️ No more applications. Please purchase another.")
             st.stop()
 
-        if not st.session_state["job_objectives"]:
-            st.session_state["job_objectives"] = extract_job_objectives(st.session_state["job_ad_text"])
+        job_text = st.session_state.get("job_ad_text", "")
+        if job_text.strip():
+            if not st.session_state["job_objectives"]:
+                st.session_state["job_objectives"] = extract_job_objectives(job_text)
+        else:
+            st.warning("⚠️ Please paste a job ad before generating a cover letter.")
+            st.stop()
 
         st.session_state["generated_text"] = generate_cover_letter(
             job_title=st.session_state["job_title"],
