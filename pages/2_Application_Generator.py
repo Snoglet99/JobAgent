@@ -33,7 +33,13 @@ def increment_usage(profile):
     return profile
 
 # --- Load User Profile ---
-query_params = st.query_params
+if "query_params_loaded" not in st.session_state:
+    query_params = st.experimental_get_query_params()
+    st.session_state["query_params"] = query_params
+    st.session_state["query_params_loaded"] = True
+else:
+    query_params = st.session_state["query_params"]
+
 email = st.text_input("Enter your email to load config", key="email_jobgen")
 
 profile = None
