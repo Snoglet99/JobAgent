@@ -109,7 +109,7 @@ if email:
             save_user_profile(email, profile)
             url = create_checkout_session(email)
             st.markdown(f"[Click here if not redirected]({url})")
-            st.markdown(f"""<meta http-equiv="refresh" content="0; URL='{url}'" />""", unsafe_allow_html=True)
+            st.markdown(f"""<meta http-equiv=\"refresh\" content=\"0; URL='{url}'\" />""", unsafe_allow_html=True)
         st.stop()
 
     # --- Session Defaults ---
@@ -129,42 +129,53 @@ if email:
     render_optional_inputs()
     render_profile_view(profile)
 
-# --- Generate Cover Letter ---
-if st.button("📝 Generate Cover Letter"):
-    if not can_generate_application(profile):
-        st.warning("⚠️ No more credits. Please purchase more.")
-        st.stop()
+    # --- Objective Extraction Section ---
+    st.markdown("#### 🧠 Extract Job Objectives")
+    st.markdown("*You must extract objectives before generating a cover letter.*")
 
-    job_text = st.session_state.get("job_ad_text", "").strip()
-    if not job_text:
-        st.warning("⚠️ Please paste a job ad before generating a cover letter.")
-        st.stop()
-
-    # Extract job objectives only if needed and valid
-    if not st.session_state.get("job_objectives") and len(job_text) > 0:
+    if st.button("🔍 Extract Job Objectives"):
         try:
-            st.session_state["job_objectives"] = extract_job_objectives(job_text)
+            job_text = st.session_state.get("job_ad_text", "")
+            st.session_state["job_objectives"] = extract_job_objectives(
+                st.session_state.get("job_title", ""),
+                job_text
+            )
+            st.success("✅ Objectives extracted!")
         except Exception as e:
-            st.error(f"❌ Failed to extract job objectives: {e}")
+            st.error(f"❌ Extraction failed: {e}")
+
+    # --- Generate Cover Letter ---
+    if st.button("📝 Generate Cover Letter"):
+        if not can_generate_application(profile):
+            st.warning("⚠️ No more credits. Please purchase more.")
             st.stop()
 
-    st.session_state["generated_text"] = generate_cover_letter(
-        job_title=st.session_state.get("job_title", ""),
-        company=st.session_state.get("company", ""),
-        job_ad_text=job_text,
-        job_objectives=st.session_state.get("job_objectives", []),
-        cv_summary=profile.get("cv_summary", ""),
-        resume_bullets=profile.get("resume_bullets", ""),
-        tone=profile.get("tone", "Default"),
-        news=st.session_state.get("recent_news", ""),
-        strategy=st.session_state.get("strategy_docs", ""),
-    )
+        job_text = st.session_state.get("job_ad_text", "").strip()
+        if not job_text:
+            st.warning("⚠️ Please paste a job ad before generating a cover letter.")
+            st.stop()
 
-    profile = increment_usage(profile)
-    save_user_profile(email, profile)
-    st.success("✅ Cover letter generated!")
+        if not st.session_state.get("job_objectives"):
+            st.warning("⚠️ You must extract job objectives before generating a cover letter.")
+            st.stop()
 
-# --- Show Output ---
-if "generated_text" in st.session_state:
-    st.markdown("### ✉️ Your Cover Letter")
-    st.text_area("Output", value=st.session_state["generated_text"], height=300, key="output", disabled=False)
+        st.session_state["generated_text"] = generate_cover_letter(
+            job_title=st.session_state.get("job_title", ""),
+            company=st.session_state.get("company", ""),
+            job_ad_text=job_text,
+            job_objectives=st.session_state.get("job_objectives", []),
+            cv_summary=profile.get("cv_summary", ""),
+            resume_bullets=profile.get("resume_bullets", ""),
+            tone=profile.get("tone", "Default"),
+            news=st.session_state.get("recent_news", ""),
+            strategy=st.session_state.get("strategy_docs", ""),
+        )
+
+        profile = increment_usage(profile)
+        save_user_profile(email, profile)
+        st.success("✅ Cover letter generated!")
+
+    # --- Show Output ---
+    if "generated_text" in st.session_state:
+        st.markdown("### ✉️ Your Cover Letter")
+        st.text_area("Output", value=st.session_state["generated_text"], height=300, key="output", disabled=False)
