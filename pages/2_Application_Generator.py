@@ -9,8 +9,6 @@ from modules.profile_utils import (
     load_user_profile,
     save_user_profile,
     save_application_to_history,
-    increment_paid_applications,
-    can_generate_application
 )
 from modules.payment import create_checkout_session
 from modules.ui_sections import (
@@ -41,14 +39,17 @@ def normalize_company_name(name):
 def fetch_company_news_cached(company_name):
     return fetch_company_news(company_name)
 
+def has_application_access(profile):
+    return profile.get("usage_count", 0) < 3 or profile.get("paid_access", False)
+
 def increment_usage_or_block(profile, email):
     if profile.get("usage_count", 0) < 3:
         profile["usage_count"] += 1
         profile["edit_rounds"] = 0
         save_user_profile(email, profile)
         return True
-    elif profile.get("credit_balance", 0) > 0:
-        profile["credit_balance"] -= 1
+    elif profile.get("paid_access", False):
+        profile["paid_access"] = False  # Paid use consumed
         profile["edit_rounds"] = 0
         save_user_profile(email, profile)
         return True
@@ -61,14 +62,22 @@ email = st.text_input("Enter your email to load config", key="email_jobgen")
 if email:
     profile = load_user_profile(email)
 
+    # Fallback if paid access exists in session
+    if st.session_state.get("paid_access"):
+        profile["paid_access"] = True
+
     # Handle Stripe redirect after successful payment
     if query_params.get("paid") and query_params.get("paid")[0] == "1":
-        increment_paid_applications(email)
-        profile = load_user_profile(email)  # Refresh profile after update
+        profile["paid_access"] = True
+        st.session_state["paid_access"] = True  # preserve if file write fails
+        try:
+            save_user_profile(email, profile)
+        except:
+            pass
         st.success("✅ Payment successful. You can now generate or edit your next application.")
-        st.experimental_set_query_params(email=email)
+        st.experimental_set_query_params(email=email)  # Clean the URL
 
-    if not can_generate_application(profile):
+    if not has_application_access(profile):
         st.error("❌ You've used all 3 applications.")
         st.markdown("### 💰 Usage & Upgrade Options")
         st.markdown("""
@@ -78,7 +87,6 @@ if email:
         """)
         if st.button("🔓 Purchase One More Application ($3 AUD)"):
             url = create_checkout_session(email)
-            st.write("🔗 Stripe Checkout URL:", url)  # Debug helper
             st.markdown(f"[Click here if not redirected]({url})")
             st.markdown(
                 f"""<meta http-equiv="refresh" content="0; URL='{url}'" />""",
@@ -162,4 +170,6 @@ if email:
                 save_user_profile(email, profile)
                 st.success("✅ Cover letter improved!")
             else:
+                profile["paid_access"] = False
+                save_user_profile(email, profile)
                 st.warning("⚠️ You've reached your 3 refinements. Please purchase another application to continue.")
