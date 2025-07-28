@@ -14,17 +14,16 @@ tone_instruction = {
     "Default": "Use a polished, persuasive tone grounded in competence and credibility."
 }
 
-
 def generate_cover_letter(
     job_title,
     company,
     job_ad_text,
     job_objectives,
-    profile,
-    news="",
-    strategy="",
+    cv_summary,
+    resume_bullets,
     tone="Default",
-    feedback=None  # ✅ NEW: optional feedback input
+    news="",
+    strategy=""
 ):
     prompt = f"""
 You are a world-class cover letter writer. Your task is to write a concise, high-impact cover letter that:
@@ -44,30 +43,17 @@ FULL JOB AD TEXT:
 {job_ad_text}
 
 CANDIDATE PROFILE SUMMARY:
-{profile.get('cv_summary', '')}
+{cv_summary}
 
 RESUME BULLETS:
-{profile.get('resume_bullets', '')}
+{resume_bullets}
 
 RECENT COMPANY NEWS / STRATEGY:
 {news}
 {strategy}
 
 TONE GUIDE: {tone_instruction.get(tone, tone_instruction['Default'])}
-"""
 
-    # ✅ Append refinement instructions if feedback is provided
-    if feedback:
-        prompt += f"""
-
---- USER FEEDBACK ---
-The user has requested that the letter be improved in the following way(s):
-{feedback}
-
-Please take this into account when drafting the letter.
-"""
-
-    prompt += """
 --- INSTRUCTIONS ---
 Write the body of the cover letter (no greeting or sign-off). The letter must:
 
@@ -83,72 +69,6 @@ Write the body of the cover letter (no greeting or sign-off). The letter must:
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a strategic, persuasive, and honest cover letter writer."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.6,
-    )
-
-    return response.choices[0].message.content.strip()
-
-
-def improve_cover_letter(
-    job_title,
-    company,
-    draft_letter,
-    job_ad_text,
-    job_objectives,
-    profile,
-    news="",
-    strategy="",
-    tone="Default",
-    user_feedback=""
-):
-    prompt = f"""
-You are a world-class cover letter editor.
-
-Your task is to improve the following cover letter, making it:
-- **More compelling**
-- **Better aligned to the job ad**
-- **More tailored to the candidate's actual experience**
-
-Only use factual content already provided in the resume, summary, job ad, company news, or strategy context. Do not invent or fabricate anything.
-
---- JOB TITLE ---
-{job_title}
-
---- COMPANY ---
-{company}
-
---- DRAFT COVER LETTER ---
-{draft_letter}
-
---- JOB OBJECTIVES (parsed) ---
-{job_objectives}
-
---- FULL JOB AD ---
-{job_ad_text}
-
---- CANDIDATE PROFILE SUMMARY ---
-{profile.get('cv_summary', '')}
-
---- RESUME BULLETS ---
-{profile.get('resume_bullets', '')}
-
---- COMPANY NEWS OR STRATEGY ---
-{news}
-{strategy}
-
---- TONE INSTRUCTION ---
-{tone_instruction.get(tone, tone_instruction['Default'])}
-
---- USER FEEDBACK ---
-{user_feedback}
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a strategic, persuasive, and honest cover letter editor."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.6,

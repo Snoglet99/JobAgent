@@ -70,7 +70,7 @@ def render_optional_inputs():
 
 def render_profile_view(profile):
     st.markdown("### 👤 Profile Snapshot (not editable here)")
-    tone = profile.get("preferred_tone", "professional")
+    tone = profile.get("tone", "Default")
     summary = profile.get("cv_summary", "")
     bullets = profile.get("resume_bullets", "")
     variant = profile.get("profile_variant", "Leader")
@@ -83,10 +83,10 @@ def render_profile_view(profile):
     # 🔄 Usage Summary
     st.markdown("---")
     st.subheader("🔄 Usage Summary")
-    st.text(f"Free Uses Remaining: {max(0, 3 - profile.get('usage_count', 0))}")
+    usage_count = profile.get("usage_count", 0)
+    credit_balance = profile.get("credit_balance", 0)
+    free_remaining = max(0, 3 - usage_count)
 
-    if profile.get("paid_access", False):
-        remaining_edits = max(0, 3 - profile.get("edit_rounds", 0))
-        st.text(f"🔓 Paid Application Active — {remaining_edits} refinements left")
-    else:
-        st.text("🛑 No paid application active")
+    st.text(f"Free Uses Remaining: {free_remaining}")
+    st.text(f"Paid Credits Remaining: {credit_balance}")
+
