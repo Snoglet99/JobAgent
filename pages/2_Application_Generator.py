@@ -1,29 +1,4 @@
-import streamlit as st
-import openai
-from openai import OpenAI
-import urllib.parse
-
-from modules.fetch_news import fetch_company_news
-from modules.parse_job_ad import extract_job_objectives
-from modules.profile_utils import (
-    load_user_profile,
-    save_user_profile,
-    save_application_to_history,
-)
-from modules.payment import create_checkout_session
-from modules.ui_sections import (
-    render_job_inputs,
-    render_news_section,
-    render_optional_inputs,
-    render_profile_view,
-)
-from modules.generate_cover_letter import generate_cover_letter
-
-# --- Setup ---
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-st.set_page_config(page_title="Application Generator", page_icon="📄")
-st.title("📄 Job Application Generator")
+# ... [imports and setup unchanged] ...
 
 def normalize_company_name(name):
     aliases = {
@@ -38,6 +13,18 @@ def normalize_company_name(name):
 @st.cache_data(ttl=3600)
 def fetch_company_news_cached(company_name):
     return fetch_company_news(company_name)
+
+def ensure_profile_keys(profile):
+    defaults = {
+        "usage_count": 0,
+        "paid_access": False,
+        "edit_rounds": 0,
+        "tone": "Default"
+    }
+    for key, default in defaults.items():
+        if key not in profile:
+            profile[key] = default
+    return profile
 
 def has_application_access(profile):
     return profile.get("usage_count", 0) < 3 or profile.get("paid_access", False)
@@ -66,6 +53,8 @@ if email:
     if not profile:
         st.warning("⚠️ No user profile found. Please check the email or create one.")
         st.stop()
+
+    profile = ensure_profile_keys(profile)
 
     # Fallback if paid access exists in session
     if st.session_state.get("paid_access"):
