@@ -21,7 +21,7 @@ def load_user_profile(email):
     if os.path.exists(path):
         with open(path, "r") as f:
             return json.load(f)
-    return {}
+    return {}  # ← fallback to prevent None
 
 def save_user_profile(email, profile):
     path = get_user_config_path(email)

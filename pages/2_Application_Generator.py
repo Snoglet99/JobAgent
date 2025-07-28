@@ -59,8 +59,13 @@ def increment_usage_or_block(profile, email):
 query_params = st.query_params
 email = st.text_input("Enter your email to load config", key="email_jobgen")
 
+profile = None
 if email:
     profile = load_user_profile(email)
+
+    if not profile:
+        st.warning("⚠️ No user profile found. Please check the email or create one.")
+        st.stop()
 
     # Fallback if paid access exists in session
     if st.session_state.get("paid_access"):
