@@ -25,7 +25,6 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 st.set_page_config(page_title="Application Generator", page_icon="📄")
 st.title("📄 Job Application Generator")
 
-
 def normalize_company_name(name):
     aliases = {
         "JP Morgan": "JPMorgan Chase",
@@ -36,15 +35,12 @@ def normalize_company_name(name):
     }
     return aliases.get(name.strip(), name.strip())
 
-
 @st.cache_data(ttl=3600)
 def fetch_company_news_cached(company_name):
     return fetch_company_news(company_name)
 
-
 def has_application_access(profile):
     return profile.get("usage_count", 0) < 3 or profile.get("paid_access", False)
-
 
 def increment_usage_or_block(profile, email):
     if profile.get("usage_count", 0) < 3:
@@ -59,9 +55,8 @@ def increment_usage_or_block(profile, email):
         return True
     return False
 
-
 # --- Load User Profile ---
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 email = st.text_input("Enter your email to load config", key="email_jobgen")
 
 if email:
@@ -80,7 +75,7 @@ if email:
         except:
             pass
         st.success("✅ Payment successful. You can now generate or edit your next application.")
-        st.experimental_set_query_params(email=email)  # Clean the URL
+        st.experimental_set_query_params(email=email)  # clean the URL
 
     if not has_application_access(profile):
         st.error("❌ You've used all 3 applications.")
@@ -94,7 +89,7 @@ if email:
             url = create_checkout_session(email)
             st.markdown(f"[Click here if not redirected]({url})")
             st.markdown(
-                f"""<meta http-equiv="refresh" content="0; URL='{url}'" />""",
+                f"""<meta http-equiv=\"refresh\" content=\"0; URL='{url}'\" />""",
                 unsafe_allow_html=True
             )
         st.stop()
