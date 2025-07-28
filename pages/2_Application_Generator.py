@@ -10,9 +10,10 @@ def normalize_company_name(name):
     }
     return aliases.get(name.strip(), name.strip())
 
-@st.cache(ttl=3600)
+@st.cache_data(ttl=3600)
 def fetch_company_news_cached(company_name):
     return fetch_company_news(company_name)
+
 
 def ensure_profile_keys(profile):
     defaults = {
