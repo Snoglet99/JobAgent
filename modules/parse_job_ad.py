@@ -1,9 +1,7 @@
-import os
+import streamlit as st
 from openai import OpenAI
-from dotenv import load_dotenv
 
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def extract_job_objectives(job_title: str, job_ad_text: str) -> dict:
     prompt = f"""
