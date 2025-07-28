@@ -10,11 +10,6 @@ def normalize_company_name(name):
     }
     return aliases.get(name.strip(), name.strip())
 
-@st.cache_data(ttl=3600)
-def fetch_company_news_cached(company_name):
-    return fetch_company_news(company_name)
-
-
 def ensure_profile_keys(profile):
     defaults = {
         "usage_count": 0,
@@ -88,7 +83,6 @@ if email:
         st.session_state.setdefault(k, v)
 
     render_job_inputs()
-    render_news_section(normalize_company_name, fetch_company_news_cached)
     render_optional_inputs()
     render_profile_view(profile)
 
@@ -114,9 +108,9 @@ if email:
             cv_summary=profile.get("cv_summary", ""),
             resume_bullets=profile.get("resume_bullets", ""),
             tone=profile.get("tone", "Default"),
-            news   =st.session_state["recent_news"],
-            strategy=st.session_state["strategy_docs"]
-            )
+            news=st.session_state["recent_news"],
+            strategy=st.session_state["strategy_docs"],
+        )
 
         profile = increment_usage(profile)
         save_user_profile(email, profile)
