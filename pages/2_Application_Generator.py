@@ -1,5 +1,27 @@
-# ... [imports and setup unchanged] ...
+import streamlit as st
+import openai
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+from modules.parse_job_ad import extract_job_objectives
+from modules.profile_utils import (
+    load_user_profile,
+    save_user_profile,
+)
+from modules.ui_sections import (
+    render_job_inputs,
+    render_optional_inputs,
+    render_profile_view,
+)
+from modules.generate_cover_letter import generate_cover_letter
 
+# --- Setup ---
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+st.set_page_config(page_title="Application Generator", page_icon="📄")
+st.title("📄 Job Application Generator")
+
+# --- Util Functions ---
 def normalize_company_name(name):
     aliases = {
         "JP Morgan": "JPMorgan Chase",
@@ -32,18 +54,34 @@ def increment_usage(profile):
         profile["paid_credits"] = max(profile.get("paid_credits", 0) - 1, 0)
     return profile
 
-# --- Load User Profile ---
-if "query_params_loaded" not in st.session_state:
-    query_params = st.experimental_get_query_params()
-    st.session_state["query_params"] = query_params
-    st.session_state["query_params_loaded"] = True
-else:
-    query_params = st.session_state["query_params"]
+def create_checkout_session(email):
+    import stripe
+    load_dotenv()
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+    session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        mode="payment",
+        customer_email=email,
+        line_items=[{
+            "price_data": {
+                "currency": "aud",
+                "product_data": {"name": "10 Job Application Credits"},
+                "unit_amount": 500,
+            },
+            "quantity": 1,
+        }],
+        success_url=f"https://jobagent.streamlit.app/Application_Generator?email={email}&paid=1",
+        cancel_url="https://jobagent.streamlit.app/Application_Generator",
+    )
+    return session.url
+
+# --- Main Execution ---
 email = st.text_input("Enter your email to load config", key="email_jobgen")
-
 profile = None
+
 if email:
+    query_params = st.experimental_get_query_params()
     profile = load_user_profile(email)
 
     if not profile:
@@ -52,14 +90,13 @@ if email:
 
     profile = ensure_profile_keys(profile)
 
-    # Handle Stripe redirect after successful payment
     if query_params.get("paid") and query_params.get("paid")[0] == "1":
         if profile.get("pending_payment", False):
             profile["paid_credits"] += 10
             profile["pending_payment"] = False
             save_user_profile(email, profile)
             st.success("✅ Payment successful. 10 credits added.")
-            st.experimental_set_query_params(email=email)  # clean the URL
+            st.experimental_set_query_params(email=email)  # Clean URL
         else:
             st.warning("⚠️ Payment already processed or invalid.")
 
@@ -72,7 +109,7 @@ if email:
             save_user_profile(email, profile)
             url = create_checkout_session(email)
             st.markdown(f"[Click here if not redirected]({url})")
-            st.markdown(f"""<meta http-equiv=\"refresh\" content=\"0; URL='{url}'\" />""", unsafe_allow_html=True)
+            st.markdown(f"""<meta http-equiv="refresh" content="0; URL='{url}'" />""", unsafe_allow_html=True)
         st.stop()
 
     # --- Session Defaults ---
@@ -126,29 +163,3 @@ if email:
     if "generated_text" in st.session_state:
         st.markdown("### ✉️ Your Cover Letter")
         st.text_area("Output", value=st.session_state["generated_text"], height=300, key="output", disabled=False)
-
-def create_checkout_session(email):
-    import stripe
-    import os
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-
-    session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        mode="payment",
-        customer_email=email,
-        line_items=[{
-            "price_data": {
-                "currency": "aud",
-                "product_data": {"name": "10 Job Application Credits"},
-                "unit_amount": 500,
-            },
-            "quantity": 1,
-        }],
-        success_url=f"https://jobagent.streamlit.app/Application_Generator?email={email}&paid=1",
-        cancel_url="https://jobagent.streamlit.app/Application_Generator",
-    )
-
-    return session.url
